@@ -1,10 +1,12 @@
-# cimgui-go [![GoDoc](https://pkg.go.dev/badge/github.com/AllenDang/cimgui-go?utm_source=godoc)](https://pkg.go.dev/mod/github.com/AllenDang/cimgui-go)
+# cimgui-go (with rlImGui builtin) [![GoDoc](https://pkg.go.dev/badge/github.com/AllenDang/cimgui-go?utm_source=godoc)](https://pkg.go.dev/mod/github.com/AllenDang/cimgui-go)
 
 This project aims to generate go wrapper for Dear ImGui.
 
 It comes with a default backend with GLFW 3.3 and OpenGL 3.2.
 
 It works on macOS(arm64/x86), windows(x64), Arch Linux/KDE and Fedora Workstation 36, idealy other linux GUI should works but I don't have a linux machine to test it. Check out `examples`, cd in and `go run .`.
+
+Integrated rlImGui(https://github.com/raylib-extras/rlImGui) into cimgui-go, check out `examples/main.go`.
 
 ## Current solution is:
 1. Use cimgui's lua generator to generate function and struct definition as json.
