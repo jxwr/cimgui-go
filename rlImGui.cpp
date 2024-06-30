@@ -128,7 +128,7 @@ static void ImGuiNewFrame(float deltaTime)
 
     io.DeltaTime = deltaTime;
 
-    if (io.WantSetMousePos)
+    if (false && io.WantSetMousePos)
     {
         SetMousePosition((int)io.MousePos.x, (int)io.MousePos.y);
     }

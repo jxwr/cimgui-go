@@ -6,18 +6,18 @@ package imgui
 */
 import "C"
 
-func ImGuiSetupRL() {
+func SetupRaylib() {
 	C.rlImGuiSetup(true)
 }
 
-func ImGuiBeginRL() {
+func BeginRaylibFrame() {
 	C.rlImGuiBegin()
 }
 
-func ImGuiEndRL() {
+func EndRaylibFrame() {
 	C.rlImGuiEnd()
 }
 
-func ImGuiShutdownRL() {
+func ShutdownRaylib() {
 	C.rlImGuiShutdown()
 }
