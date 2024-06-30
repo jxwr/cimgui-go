@@ -5,7 +5,7 @@ import (
 	"image"
 	"runtime"
 
-	imgui "github.com/AllenDang/cimgui-go"
+	imgui "github.com/jxwr/cimgui-go"
 )
 
 var (
