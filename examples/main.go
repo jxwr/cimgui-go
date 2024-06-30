@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"image"
-	"runtime"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 
 	imgui "github.com/jxwr/cimgui-go"
 )
@@ -21,10 +21,6 @@ var (
 	a              float32
 	color4         [4]float32 = [4]float32{r, g, b, a}
 	selected       bool
-	backend        imgui.Backend[imgui.GLFWWindowFlags]
-	img            *image.RGBA
-	texture        *imgui.Texture
-	barValues      []int64
 )
 
 func callback(data imgui.InputTextCallbackData) int {
@@ -40,8 +36,7 @@ func showWidgetsDemo() {
 	imgui.SetNextWindowSizeV(imgui.NewVec2(300, 300), imgui.CondOnce)
 	imgui.Begin("Window 1")
 	if imgui.ButtonV("Click Me", imgui.NewVec2(80, 20)) {
-		w, h := backend.DisplaySize()
-		fmt.Println(w, h)
+		fmt.Println("Click Me")
 	}
 	imgui.TextUnformatted("Unformatted text")
 	imgui.Checkbox("Show demo window", &showDemoWindow)
@@ -72,76 +67,34 @@ func showWidgetsDemo() {
 	imgui.End()
 }
 
-func showPictureLoadingDemo() {
-	// demo of showing a picture
-	basePos := imgui.MainViewport().Pos()
-	imgui.SetNextWindowPosV(imgui.NewVec2(basePos.X+60, 600), imgui.CondOnce, imgui.NewVec2(0, 0))
-	imgui.Begin("Image")
-	imgui.Text(fmt.Sprintf("pointer = %v", texture.ID))
-	imgui.ImageV(texture.ID, imgui.NewVec2(float32(texture.Width), float32(texture.Height)), imgui.NewVec2(0, 0), imgui.NewVec2(1, 1), imgui.NewVec4(1, 1, 1, 1), imgui.NewVec4(0, 0, 0, 0))
-	imgui.End()
-}
-
-func showImPlotDemo() {
-	basePos := imgui.MainViewport().Pos()
-	imgui.SetNextWindowPosV(imgui.NewVec2(basePos.X+400, basePos.Y+60), imgui.CondOnce, imgui.NewVec2(0, 0))
-	imgui.SetNextWindowSizeV(imgui.NewVec2(500, 300), imgui.CondOnce)
-	imgui.Begin("Plot window")
-	if imgui.PlotBeginPlotV("Plot", imgui.NewVec2(-1, -1), 0) {
-		imgui.PlotPlotBarsS64PtrInt("Bar", barValues, int32(len(barValues)))
-		imgui.PlotPlotLineS64PtrInt("Line", barValues, int32(len(barValues)))
-		imgui.PlotEndPlot()
-	}
-	imgui.End()
-}
-
-func afterCreateContext() {
-	texture = imgui.NewTextureFromRgba(img)
-	imgui.PlotCreateContext()
-}
-
-func loop() {
-	showWidgetsDemo()
-	showPictureLoadingDemo()
-	showImPlotDemo()
-}
-
-func beforeDestroyContext() {
-	imgui.PlotDestroyContext()
-}
-
-func init() {
-	runtime.LockOSThread()
-}
-
 func main() {
-	var err error
-	img, err = imgui.LoadImage("./test.jpeg")
-	if err != nil {
-		panic("Failed to load test.jpeg")
+	screenWidth := 1200
+	screenHeight := 800
+
+	rl.SetConfigFlags(rl.FlagWindowResizable)
+	rl.InitWindow(int32(screenWidth), int32(screenHeight), "Raylib Window")
+	defer rl.CloseWindow()
+	rl.SetTargetFPS(60)
+	imgui.SetupRaylib()
+
+	for !rl.WindowShouldClose() {
+		rl.BeginDrawing()
+		imgui.BeginRaylibFrame()
+		rl.ClearBackground(rl.RayWhite)
+
+		imgui.Begin("panel")
+		if imgui.Button("button") {
+			fmt.Printf("button pressed\n")
+		}
+		imgui.End()
+
+		showWidgetsDemo()
+
+		rl.DrawCircle(100, 100, 40, rl.Blue)
+
+		imgui.EndRaylibFrame()
+		rl.EndDrawing()
 	}
 
-	for i := 0; i < 10; i++ {
-		barValues = append(barValues, int64(i+1))
-	}
-
-	backend, _ = imgui.CreateBackend(imgui.NewGLFWBackend())
-	backend.SetAfterCreateContextHook(afterCreateContext)
-	backend.SetBeforeDestroyContextHook(beforeDestroyContext)
-
-	backend.SetBgColor(imgui.NewVec4(0.45, 0.55, 0.6, 1.0))
-
-	backend.CreateWindow("Hello from cimgui-go", 1200, 900)
-
-	backend.SetDropCallback(func(p []string) {
-		fmt.Printf("drop triggered: %v", p)
-	})
-
-	backend.SetCloseCallback(func(b imgui.Backend[imgui.GLFWWindowFlags]) {
-		fmt.Println("window is closing")
-	})
-
-	backend.SetIcons(img)
-
-	backend.Run(loop)
+	imgui.ShutdownRaylib()
 }
