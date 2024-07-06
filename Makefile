@@ -71,6 +71,12 @@ compile_cimgui_macos:
 	cd ./lib/build; make
 	cp -f ./lib/build/cimgui.a ./lib/macos/arm64/
 
+compile_cimgui_macos_x64:
+	rm -rf ./lib/build
+	cd ./lib; cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DIMGUI_STATIC=On -DCMAKE_OSX_ARCHITECTURES=x86_64
+	cd ./lib/build; make
+	cp -f ./lib/build/cimgui.a ./lib/macos/x64/
+
 ## generate: generates both bindings (equal to `all`)
 .PHONY: generate
 generate: cimgui cimplot cimnodes cimmarkdown

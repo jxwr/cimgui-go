@@ -261,6 +261,15 @@ func (self *DrawList) AddCircleFilledV(center Vec2, radius float32, col uint32, 
 	selfFin()
 }
 
+func (self *DrawList) AddConcavePolyFilled(points *Vec2, num_points int32, col uint32) {
+	selfArg, selfFin := self.handle()
+	pointsArg, pointsFin := wrap[C.ImVec2, *Vec2](points)
+	C.ImDrawList_AddConcavePolyFilled(selfArg, pointsArg, C.int(num_points), C.ImU32(col))
+
+	selfFin()
+	pointsFin()
+}
+
 func (self *DrawList) AddConvexPolyFilled(points *Vec2, num_points int32, col uint32) {
 	selfArg, selfFin := self.handle()
 	pointsArg, pointsFin := wrap[C.ImVec2, *Vec2](points)
@@ -282,9 +291,9 @@ func (self *DrawList) AddDrawCmd() {
 // rot: 0.0f
 // num_segments: 0
 // thickness: 1.0f
-func (self *DrawList) AddEllipseV(center Vec2, radius_x float32, radius_y float32, col uint32, rot float32, num_segments int32, thickness float32) {
+func (self *DrawList) AddEllipseV(center Vec2, radius Vec2, col uint32, rot float32, num_segments int32, thickness float32) {
 	selfArg, selfFin := self.handle()
-	C.ImDrawList_AddEllipse(selfArg, center.toC(), C.float(radius_x), C.float(radius_y), C.ImU32(col), C.float(rot), C.int(num_segments), C.float(thickness))
+	C.ImDrawList_AddEllipse(selfArg, center.toC(), radius.toC(), C.ImU32(col), C.float(rot), C.int(num_segments), C.float(thickness))
 
 	selfFin()
 }
@@ -292,9 +301,9 @@ func (self *DrawList) AddEllipseV(center Vec2, radius_x float32, radius_y float3
 // AddEllipseFilledV parameter default value hint:
 // rot: 0.0f
 // num_segments: 0
-func (self *DrawList) AddEllipseFilledV(center Vec2, radius_x float32, radius_y float32, col uint32, rot float32, num_segments int32) {
+func (self *DrawList) AddEllipseFilledV(center Vec2, radius Vec2, col uint32, rot float32, num_segments int32) {
 	selfArg, selfFin := self.handle()
-	C.ImDrawList_AddEllipseFilled(selfArg, center.toC(), C.float(radius_x), C.float(radius_y), C.ImU32(col), C.float(rot), C.int(num_segments))
+	C.ImDrawList_AddEllipseFilled(selfArg, center.toC(), radius.toC(), C.ImU32(col), C.float(rot), C.int(num_segments))
 
 	selfFin()
 }
@@ -573,9 +582,16 @@ func (self *DrawList) PathClear() {
 // Ellipse
 // PathEllipticalArcToV parameter default value hint:
 // num_segments: 0
-func (self *DrawList) PathEllipticalArcToV(center Vec2, radius_x float32, radius_y float32, rot float32, a_min float32, a_max float32, num_segments int32) {
+func (self *DrawList) PathEllipticalArcToV(center Vec2, radius Vec2, rot float32, a_min float32, a_max float32, num_segments int32) {
 	selfArg, selfFin := self.handle()
-	C.ImDrawList_PathEllipticalArcTo(selfArg, center.toC(), C.float(radius_x), C.float(radius_y), C.float(rot), C.float(a_min), C.float(a_max), C.int(num_segments))
+	C.ImDrawList_PathEllipticalArcTo(selfArg, center.toC(), radius.toC(), C.float(rot), C.float(a_min), C.float(a_max), C.int(num_segments))
+
+	selfFin()
+}
+
+func (self *DrawList) PathFillConcave(col uint32) {
+	selfArg, selfFin := self.handle()
+	C.ImDrawList_PathFillConcave(selfArg, C.ImU32(col))
 
 	selfFin()
 }
@@ -1402,23 +1418,79 @@ func (self *ContextHook) Destroy() {
 	selfFin()
 }
 
-// // Different to ensure initial submission
+//	    // All platforms use Ctrl+Tab but Ctrl<>Super are swapped on Mac...
+//	    // FIXME: Because this value is stored, it annoyingly interfere with toggling io.ConfigMacOSXBehaviors updating this..
+//	    ConfigNavWindowingKeyNext = IO.ConfigMacOSXBehaviors ? (ImGuiMod_Super | ImGuiKey_Tab) : (ImGuiMod_Ctrl | ImGuiKey_Tab);
+//	    ConfigNavWindowingKeyPrev = IO.ConfigMacOSXBehaviors ? (ImGuiMod_Super | ImGuiMod_Shift | ImGuiKey_Tab) : (ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Tab);
+//	    NavWindowingTarget = NavWindowingTargetAnim = NavWindowingListWindow = ((void*)0);
+//	    NavWindowingTimer = NavWindowingHighlightAlpha = 0.0f;
+//	    NavWindowingToggleLayer = false;
+//	    NavWindowingToggleKey = ImGuiKey_None;
 //
+//	    DimBgRatio = 0.0f;
+//
+//	    DragDropActive = DragDropWithinSource = DragDropWithinTarget = false;
+//	    DragDropSourceFlags = ImGuiDragDropFlags_None;
+//	    DragDropSourceFrameCount = -1;
+//	    DragDropMouseButton = -1;
+//	    DragDropTargetId = 0;
+//	    DragDropAcceptFlags = ImGuiDragDropFlags_None;
+//	    DragDropAcceptIdCurrRectSurface = 0.0f;
+//	    DragDropAcceptIdPrev = DragDropAcceptIdCurr = 0;
+//	    DragDropAcceptFrameCount = -1;
+//	    DragDropHoldJustPressedId = 0;
+//	    __builtin___memset_chk (DragDropPayloadBufLocal, 0, sizeof(DragDropPayloadBufLocal), __builtin_object_size (DragDropPayloadBufLocal, 0));
+//
+//	    ClipperTempDataStacked = 0;
+//
+//	    CurrentTable = ((void*)0);
+//	    TablesTempDataStacked = 0;
+//	    CurrentTabBar = ((void*)0);
+//
+//	    HoverItemDelayId = HoverItemDelayIdPreviousFrame = HoverItemUnlockedStationaryId = HoverWindowUnlockedStationaryId = 0;
+//	    HoverItemDelayTimer = HoverItemDelayClearTimer = 0.0f;
+//
+//	    MouseCursor = ImGuiMouseCursor_Arrow;
+//	    MouseStationaryTimer = 0.0f;
+//
+//	    TempInputId = 0;
+//	    __builtin___memset_chk (&DataTypeZeroValue, 0, sizeof(DataTypeZeroValue), __builtin_object_size (&DataTypeZeroValue, 0));
+//	    BeginMenuDepth = BeginComboDepth = 0;
+//	    ColorEditOptions = ImGuiColorEditFlags_DefaultOptions_;
+//	    ColorEditCurrentID = ColorEditSavedID = 0;
+//	    ColorEditSavedHue = ColorEditSavedSat = 0.0f;
+//	    ColorEditSavedColor = 0;
+//	    WindowResizeRelativeMode = false;
+//	    ScrollbarSeekMode = 0;
+//	    ScrollbarClickDeltaToGrabCenter = 0.0f;
+//	    SliderGrabClickOffset = 0.0f;
+//	    SliderCurrentAccum = 0.0f;
+//	    SliderCurrentAccumDirty = false;
+//	    DragCurrentAccumDirty = false;
+//	    DragCurrentAccum = 0.0f;
+//	    DragSpeedDefaultRatio = 1.0f / 100.0f;
+//	    DisabledAlphaBackup = 0.0f;
+//	    DisabledStackSize = 0;
+//	    LockMarkEdited = 0;
+//	    TooltipOverrideCount = 0;
+//
+//	    PlatformImeData.InputPos = ImVec2(0.0f, 0.0f);
+//	    PlatformImeDataPrev.InputPos = ImVec2(-1.0f, -1.0f); // Different to ensure initial submission
 //	    PlatformImeViewport = 0;
 //
-//	    DockNodeWindowMenuHandler =                                    ((void *)0)                                       ;
+//	    DockNodeWindowMenuHandler = ((void*)0);
 //
 //	    SettingsLoaded = false;
 //	    SettingsDirtyTimer = 0.0f;
 //	    HookIdNext = 0;
 //
-//	    memset(LocalizationTable, 0, sizeof(LocalizationTable));
+//	    __builtin___memset_chk (LocalizationTable, 0, sizeof(LocalizationTable), __builtin_object_size (LocalizationTable, 0));
 //
 //	    LogEnabled = false;
 //	    LogType = ImGuiLogType_None;
-//	    LogNextPrefix = LogNextSuffix =                                        ((void *)0)                                           ;
-//	    LogFile =                  ((void *)0)                     ;
-//	    LogLinePosY = 3.40282346638528859811704183484516925e+38F                            ;
+//	    LogNextPrefix = LogNextSuffix = ((void*)0);
+//	    LogFile = ((void*)0);
+//	    LogLinePosY = 3.40282347e+38F;
 //	    LogLineFirstItem = false;
 //	    LogDepthRef = 0;
 //	    LogDepthToExpand = LogDepthToExpandDefault = 2;
@@ -1434,7 +1506,7 @@ func (self *ContextHook) Destroy() {
 //	    DebugItemPickerBreakId = 0;
 //	    DebugFlashStyleColorTime = 0.0f;
 //	    DebugFlashStyleColorIdx = ImGuiCol_COUNT;
-//	    DebugHoveredDockNode =                               ((void *)0)                                  ;
+//	    DebugHoveredDockNode = ((void*)0);
 //
 //	    // Same as DebugBreakClearData(). Those fields are scattered in their respective subsystem to stay in hot-data locations
 //	    DebugBreakInWindow = 0;
@@ -1443,11 +1515,11 @@ func (self *ContextHook) Destroy() {
 //	    DebugBreakKeyChord = ImGuiKey_Pause;
 //	    DebugBreakInShortcutRouting = ImGuiKey_None;
 //
-//	    memset(FramerateSecPerFrame, 0, sizeof(FramerateSecPerFrame));
+//	    __builtin___memset_chk (FramerateSecPerFrame, 0, sizeof(FramerateSecPerFrame), __builtin_object_size (FramerateSecPerFrame, 0));
 //	    FramerateSecPerFrameIdx = FramerateSecPerFrameCount = 0;
 //	    FramerateSecPerFrameAccum = 0.0f;
 //	    WantCaptureMouseNextFrame = WantCaptureKeyboardNextFrame = WantTextInputNextFrame = -1;
-//	    memset(TempKeychordName, 0, sizeof(TempKeychordName));
+//	    __builtin___memset_chk (TempKeychordName, 0, sizeof(TempKeychordName), __builtin_object_size (TempKeychordName, 0));
 //	}
 func InternalNewContext(shared_font_atlas *FontAtlas) *Context {
 	shared_font_atlasArg, shared_font_atlasFin := shared_font_atlas.handle()
@@ -1733,10 +1805,18 @@ func (self *IO) ClearEventsQueue() {
 	selfFin()
 }
 
-// Clear current keyboard/mouse/gamepad state + current frame text input buffer. Equivalent to releasing all keys/buttons.
+// Clear current keyboard/gamepad state + current frame text input buffer. Equivalent to releasing all keys/buttons.
 func (self *IO) ClearInputKeys() {
 	selfArg, selfFin := self.handle()
 	C.ImGuiIO_ClearInputKeys(selfArg)
+
+	selfFin()
+}
+
+// Clear current mouse state.
+func (self *IO) ClearInputMouse() {
+	selfArg, selfFin := self.handle()
+	C.ImGuiIO_ClearInputMouse(selfArg)
 
 	selfFin()
 }
@@ -3208,15 +3288,6 @@ func InternalNewWindow(context *Context, name string) *Window {
 	return newWindowFromC(C.ImGuiWindow_ImGuiWindow(contextArg, nameArg))
 }
 
-func (self *Window) InternalMenuBarHeight() float32 {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return float32(C.ImGuiWindow_MenuBarHeight(selfArg))
-}
-
 func (self *Window) InternalMenuBarRect() Rect {
 	pOut := new(Rect)
 	pOutArg, pOutFin := wrap[C.ImRect, *Rect](pOut)
@@ -3241,15 +3312,6 @@ func (self *Window) InternalRect() Rect {
 	selfFin()
 
 	return *pOut
-}
-
-func (self *Window) InternalTitleBarHeight() float32 {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return float32(C.ImGuiWindow_TitleBarHeight(selfArg))
 }
 
 func (self *Window) InternalTitleBarRect() Rect {
@@ -3704,6 +3766,10 @@ func BeginDisabledV(disabled bool) {
 	C.igBeginDisabled(C.bool(disabled))
 }
 
+func InternalBeginDisabledOverrideReenable() {
+	C.igBeginDisabledOverrideReenable()
+}
+
 func InternalBeginDockableDragDropSource(window *Window) {
 	windowArg, windowFin := window.handle()
 	C.igBeginDockableDragDropSource(windowArg)
@@ -3856,13 +3922,13 @@ func BeginPopupContextWindowV(str_id string, popup_flags PopupFlags) bool {
 	return C.igBeginPopupContextWindow(str_idArg, C.ImGuiPopupFlags(popup_flags)) == C.bool(true)
 }
 
-func InternalBeginPopupEx(id ID, extra_flags WindowFlags) bool {
+func InternalBeginPopupEx(id ID, extra_window_flags WindowFlags) bool {
 	idArg, idFin := id.c()
 
 	defer func() {
 		idFin()
 	}()
-	return C.igBeginPopupEx(idArg, C.ImGuiWindowFlags(extra_flags)) == C.bool(true)
+	return C.igBeginPopupEx(idArg, C.ImGuiWindowFlags(extra_window_flags)) == C.bool(true)
 }
 
 // return true if the modal is open, and you can start outputting to it.
@@ -3920,13 +3986,13 @@ func BeginTabItemV(label string, p_open *bool, flags TabItemFlags) bool {
 // flags: 0
 // outer_size: ImVec2(0.0f,0.0f)
 // inner_width: 0.0f
-func BeginTableV(str_id string, column int32, flags TableFlags, outer_size Vec2, inner_width float32) bool {
+func BeginTableV(str_id string, columns int32, flags TableFlags, outer_size Vec2, inner_width float32) bool {
 	str_idArg, str_idFin := WrapString(str_id)
 
 	defer func() {
 		str_idFin()
 	}()
-	return C.igBeginTable(str_idArg, C.int(column), C.ImGuiTableFlags(flags), outer_size.toC(), C.float(inner_width)) == C.bool(true)
+	return C.igBeginTable(str_idArg, C.int(columns), C.ImGuiTableFlags(flags), outer_size.toC(), C.float(inner_width)) == C.bool(true)
 }
 
 // InternalBeginTableExV parameter default value hint:
@@ -4448,13 +4514,8 @@ func ComboStrarrV(label string, current_item *int32, items []string, items_count
 	return C.igCombo_Str_arr(labelArg, current_itemArg, itemsArg, C.int(items_count), C.int(popup_max_height_in_items)) == C.bool(true)
 }
 
-func InternalConvertSingleModFlagToKey(ctx *Context, key Key) Key {
-	ctxArg, ctxFin := ctx.handle()
-
-	defer func() {
-		ctxFin()
-	}()
-	return Key(C.igConvertSingleModFlagToKey(ctxArg, C.ImGuiKey(key)))
+func InternalConvertSingleModFlagToKey(key Key) Key {
+	return Key(C.igConvertSingleModFlagToKey(C.ImGuiKey(key)))
 }
 
 // CreateContextV parameter default value hint:
@@ -4477,7 +4538,9 @@ func InternalCreateNewWindowSettings(name string) *WindowSettings {
 	return newWindowSettingsFromC(C.igCreateNewWindowSettings(nameArg))
 }
 
-func InternalDataTypeApplyFromText(buf string, data_type DataType, p_data uintptr, format string) bool {
+// InternalDataTypeApplyFromTextV parameter default value hint:
+// p_data_when_empty: NULL
+func InternalDataTypeApplyFromTextV(buf string, data_type DataType, p_data uintptr, format string, p_data_when_empty uintptr) bool {
 	bufArg, bufFin := WrapString(buf)
 	formatArg, formatFin := WrapString(format)
 
@@ -4485,7 +4548,7 @@ func InternalDataTypeApplyFromText(buf string, data_type DataType, p_data uintpt
 		bufFin()
 		formatFin()
 	}()
-	return C.wrap_igDataTypeApplyFromText(bufArg, C.ImGuiDataType(data_type), C.uintptr_t(p_data), formatArg) == C.bool(true)
+	return C.wrap_igDataTypeApplyFromTextV(bufArg, C.ImGuiDataType(data_type), C.uintptr_t(p_data), formatArg, C.uintptr_t(p_data_when_empty)) == C.bool(true)
 }
 
 func InternalDataTypeApplyOp(data_type DataType, op int32, output uintptr, arg_1 uintptr, arg_2 uintptr) {
@@ -4604,7 +4667,8 @@ func InternalDebugLocateItemResolveWithLastItem() {
 	C.igDebugLocateItemResolveWithLastItem()
 }
 
-func InternalDebugLog(fmt string) {
+// Call via IMGUI_DEBUG_LOG() for maximum stripping in caller code!
+func DebugLog(fmt string) {
 	fmtArg, fmtFin := WrapString(fmt)
 	C.wrap_igDebugLog(fmtArg)
 
@@ -4761,6 +4825,15 @@ func DebugTextEncoding(text string) {
 	C.igDebugTextEncoding(textArg)
 
 	textFin()
+}
+
+func InternalDebugTextUnformattedWithLocateItem(line_begin string, line_end string) {
+	line_beginArg, line_beginFin := WrapString(line_begin)
+	line_endArg, line_endFin := WrapString(line_end)
+	C.igDebugTextUnformattedWithLocateItem(line_beginArg, line_endArg)
+
+	line_beginFin()
+	line_endFin()
 }
 
 // NULL = destroy current context
@@ -5105,34 +5178,37 @@ func InternalDockNodeWindowMenuHandlerDefault(ctx *Context, node *DockNode, tab_
 // size: ImVec2(0,0)
 // flags: 0
 // window_class: NULL
-func DockSpaceV(id ID, size Vec2, flags DockNodeFlags, window_class *WindowClass) ID {
-	idArg, idFin := id.c()
+func DockSpaceV(dockspace_id ID, size Vec2, flags DockNodeFlags, window_class *WindowClass) ID {
+	dockspace_idArg, dockspace_idFin := dockspace_id.c()
 	window_classArg, window_classFin := window_class.handle()
 
 	defer func() {
-		idFin()
+		dockspace_idFin()
 		window_classFin()
 	}()
 	return *newIDFromC(func() *C.ImGuiID {
-		result := C.igDockSpace(idArg, size.toC(), C.ImGuiDockNodeFlags(flags), window_classArg)
+		result := C.igDockSpace(dockspace_idArg, size.toC(), C.ImGuiDockNodeFlags(flags), window_classArg)
 		return &result
 	}())
 }
 
 // DockSpaceOverViewportV parameter default value hint:
+// dockspace_id: 0
 // viewport: NULL
 // flags: 0
 // window_class: NULL
-func DockSpaceOverViewportV(viewport *Viewport, flags DockNodeFlags, window_class *WindowClass) ID {
+func DockSpaceOverViewportV(dockspace_id ID, viewport *Viewport, flags DockNodeFlags, window_class *WindowClass) ID {
+	dockspace_idArg, dockspace_idFin := dockspace_id.c()
 	viewportArg, viewportFin := viewport.handle()
 	window_classArg, window_classFin := window_class.handle()
 
 	defer func() {
+		dockspace_idFin()
 		viewportFin()
 		window_classFin()
 	}()
 	return *newIDFromC(func() *C.ImGuiID {
-		result := C.igDockSpaceOverViewport(viewportArg, C.ImGuiDockNodeFlags(flags), window_classArg)
+		result := C.igDockSpaceOverViewport(dockspace_idArg, viewportArg, C.ImGuiDockNodeFlags(flags), window_classArg)
 		return &result
 	}())
 }
@@ -5463,6 +5539,10 @@ func EndDisabled() {
 	C.igEndDisabled()
 }
 
+func InternalEndDisabledOverrideReenable() {
+	C.igEndDisabledOverrideReenable()
+}
+
 // only call EndDragDropSource() if BeginDragDropSource() returns true!
 func EndDragDropSource() {
 	C.igEndDragDropSource()
@@ -5658,15 +5738,13 @@ func InternalFindWindowSettingsByWindow(window *Window) *WindowSettings {
 	return newWindowSettingsFromC(C.igFindWindowSettingsByWindow(windowArg))
 }
 
-func InternalFixupKeyChord(ctx *Context, key_chord KeyChord) KeyChord {
-	ctxArg, ctxFin := ctx.handle()
+func InternalFixupKeyChord(key_chord KeyChord) KeyChord {
 	key_chordArg, key_chordFin := key_chord.c()
 
 	defer func() {
-		ctxFin()
 		key_chordFin()
 	}()
-	return *newKeyChordFromC(func() *C.ImGuiKeyChord { result := C.igFixupKeyChord(ctxArg, key_chordArg); return &result }())
+	return *newKeyChordFromC(func() *C.ImGuiKeyChord { result := C.igFixupKeyChord(key_chordArg); return &result }())
 }
 
 // Focus last item (no selection/activation).
@@ -5716,19 +5794,16 @@ func InternalActiveID() ID {
 	return *newIDFromC(func() *C.ImGuiID { result := C.igGetActiveID(); return &result }())
 }
 
-// get background draw list for the viewport associated to the current window. this draw list will be the first rendering one. Useful to quickly draw shapes/text behind dear imgui contents.
-func BackgroundDrawList() *DrawList {
-	return newDrawListFromC(C.igGetBackgroundDrawList_Nil())
-}
-
-// get background draw list for the given viewport. this draw list will be the first rendering one. Useful to quickly draw shapes/text behind dear imgui contents.
-func BackgroundDrawListViewportPtr(viewport *Viewport) *DrawList {
+// get background draw list for the given viewport or viewport associated to the current window. this draw list will be the first rendering one. Useful to quickly draw shapes/text behind dear imgui contents.
+// BackgroundDrawListV parameter default value hint:
+// viewport: NULL
+func BackgroundDrawListV(viewport *Viewport) *DrawList {
 	viewportArg, viewportFin := viewport.handle()
 
 	defer func() {
 		viewportFin()
 	}()
-	return newDrawListFromC(C.igGetBackgroundDrawList_ViewportPtr(viewportArg))
+	return newDrawListFromC(C.igGetBackgroundDrawList(viewportArg))
 }
 
 func ClipboardText() string {
@@ -5955,13 +6030,10 @@ func FontTexUvWhitePixel() Vec2 {
 	return *pOut
 }
 
-// get foreground draw list for the viewport associated to the current window. this draw list will be the last rendered one. Useful to quickly draw shapes/text over dear imgui contents.
-func ForegroundDrawList() *DrawList {
-	return newDrawListFromC(C.igGetForegroundDrawList_Nil())
-}
-
-// get foreground draw list for the given viewport. this draw list will be the last rendered one. Useful to quickly draw shapes/text over dear imgui contents.
-func ForegroundDrawListViewportPtr(viewport *Viewport) *DrawList {
+// get foreground draw list for the given viewport or viewport associated to the current window. this draw list will be the top-most rendered one. Useful to quickly draw shapes/text over dear imgui contents.
+// ForegroundDrawListViewportPtrV parameter default value hint:
+// viewport: NULL
+func ForegroundDrawListViewportPtrV(viewport *Viewport) *DrawList {
 	viewportArg, viewportFin := viewport.handle()
 
 	defer func() {
@@ -6134,10 +6206,6 @@ func InternalKeyDataKey(key Key) *KeyData {
 	return newKeyDataFromC(C.igGetKeyData_Key(C.ImGuiKey(key)))
 }
 
-func KeyIndex(key Key) Key {
-	return Key(C.igGetKeyIndex(C.ImGuiKey(key)))
-}
-
 func InternalKeyMagnitude2d(key_left Key, key_right Key, key_up Key, key_down Key) Vec2 {
 	pOut := new(Vec2)
 	pOutArg, pOutFin := wrap[C.ImVec2, *Vec2](pOut)
@@ -6187,7 +6255,7 @@ func CurrentMouseCursor() MouseCursor {
 	return MouseCursor(C.igGetMouseCursor())
 }
 
-// return the delta from the initial clicking position while the mouse button is pressed or was just released. This is locked and return 0.0f until the mouse moves past a distance threshold at least once (if lock_threshold < -1.0f, uses io.MouseDraggingThreshold)
+// return the delta from the initial clicking position while the mouse button is pressed or was just released. This is locked and return 0.0f until the mouse moves past a distance threshold at least once (uses io.MouseDraggingThreshold if lock_threshold < 0.0f)
 // MouseDragDeltaV parameter default value hint:
 // button: 0
 // lock_threshold: -1.0f
@@ -6857,6 +6925,19 @@ func InternalImLogDouble(x float64) float64 {
 	return float64(C.igImLog_double(C.double(x)))
 }
 
+func InternalImLowerBound(in_begin *StoragePair, in_end *StoragePair, key ID) *StoragePair {
+	in_beginArg, in_beginFin := in_begin.handle()
+	in_endArg, in_endFin := in_end.handle()
+	keyArg, keyFin := key.c()
+
+	defer func() {
+		in_beginFin()
+		in_endFin()
+		keyFin()
+	}()
+	return newStoragePairFromC(C.igImLowerBound(in_beginArg, in_endArg, keyArg))
+}
+
 func InternalImMax(lhs Vec2, rhs Vec2) Vec2 {
 	pOut := new(Vec2)
 	pOutArg, pOutFin := wrap[C.ImVec2, *Vec2](pOut)
@@ -7158,6 +7239,18 @@ func InternalImTextCountCharsFromUtf8(in_text string, in_text_end string) int32 
 	return int32(C.igImTextCountCharsFromUtf8(in_textArg, in_text_endArg))
 }
 
+// return number of lines taken by text. trailing carriage return doesn't count as an extra line.
+func InternalImTextCountLines(in_text string, in_text_end string) int32 {
+	in_textArg, in_textFin := WrapString(in_text)
+	in_text_endArg, in_text_endFin := WrapString(in_text_end)
+
+	defer func() {
+		in_textFin()
+		in_text_endFin()
+	}()
+	return int32(C.igImTextCountLines(in_textArg, in_text_endArg))
+}
+
 // return number of bytes to express one char in UTF-8
 func InternalImTextCountUtf8BytesFromChar(in_text string, in_text_end string) int32 {
 	in_textArg, in_textFin := WrapString(in_text)
@@ -7245,6 +7338,10 @@ func InternalImTriangleClosestPoint(a Vec2, b Vec2, c Vec2, p Vec2) Vec2 {
 
 func InternalImTriangleContainsPoint(a Vec2, b Vec2, c Vec2, p Vec2) bool {
 	return C.igImTriangleContainsPoint(a.toC(), b.toC(), c.toC(), p.toC()) == C.bool(true)
+}
+
+func InternalImTriangleIsClockwise(a Vec2, b Vec2, c Vec2) bool {
+	return C.igImTriangleIsClockwise(a.toC(), b.toC(), c.toC()) == C.bool(true)
 }
 
 func InternalImTruncFloat(f float32) float32 {
@@ -7660,9 +7757,9 @@ func IsItemVisible() bool {
 	return C.igIsItemVisible() == C.bool(true)
 }
 
-// InternalIsKeyChordPressedIDV parameter default value hint:
-// flags: 0
-func InternalIsKeyChordPressedIDV(key_chord KeyChord, owner_id ID, flags InputFlags) bool {
+// InternalIsKeyChordPressedInputFlagsV parameter default value hint:
+// owner_id: 0
+func InternalIsKeyChordPressedInputFlagsV(key_chord KeyChord, flags InputFlags, owner_id ID) bool {
 	key_chordArg, key_chordFin := key_chord.c()
 	owner_idArg, owner_idFin := owner_id.c()
 
@@ -7670,7 +7767,7 @@ func InternalIsKeyChordPressedIDV(key_chord KeyChord, owner_id ID, flags InputFl
 		key_chordFin()
 		owner_idFin()
 	}()
-	return C.igIsKeyChordPressed_ID(key_chordArg, owner_idArg, C.ImGuiInputFlags(flags)) == C.bool(true)
+	return C.igIsKeyChordPressed_InputFlags(key_chordArg, C.ImGuiInputFlags(flags), owner_idArg) == C.bool(true)
 }
 
 // was key chord (mods + key) pressed, e.g. you can pass 'ImGuiMod_Ctrl | ImGuiKey_S' as a key-chord. This doesn't do any routing or focus check, please consider using Shortcut() function instead.
@@ -7705,15 +7802,15 @@ func IsKeyPressedBoolV(key Key, repeat bool) bool {
 }
 
 // Important: when transitioning from old to new IsKeyPressed(): old API has "bool repeat = true", so would default to repeat. New API requiress explicit ImGuiInputFlags_Repeat.
-// InternalIsKeyPressedIDV parameter default value hint:
-// flags: 0
-func InternalIsKeyPressedIDV(key Key, owner_id ID, flags InputFlags) bool {
+// InternalIsKeyPressedInputFlagsV parameter default value hint:
+// owner_id: 0
+func InternalIsKeyPressedInputFlagsV(key Key, flags InputFlags, owner_id ID) bool {
 	owner_idArg, owner_idFin := owner_id.c()
 
 	defer func() {
 		owner_idFin()
 	}()
-	return C.igIsKeyPressed_ID(C.ImGuiKey(key), owner_idArg, C.ImGuiInputFlags(flags)) == C.bool(true)
+	return C.igIsKeyPressed_InputFlags(C.ImGuiKey(key), C.ImGuiInputFlags(flags), owner_idArg) == C.bool(true)
 }
 
 func InternalIsKeyReleasedID(key Key, owner_id ID) bool {
@@ -7749,15 +7846,15 @@ func IsMouseClickedBoolV(button MouseButton, repeat bool) bool {
 	return C.igIsMouseClicked_Bool(C.ImGuiMouseButton(button), C.bool(repeat)) == C.bool(true)
 }
 
-// InternalIsMouseClickedIDV parameter default value hint:
-// flags: 0
-func InternalIsMouseClickedIDV(button MouseButton, owner_id ID, flags InputFlags) bool {
+// InternalIsMouseClickedInputFlagsV parameter default value hint:
+// owner_id: 0
+func InternalIsMouseClickedInputFlagsV(button MouseButton, flags InputFlags, owner_id ID) bool {
 	owner_idArg, owner_idFin := owner_id.c()
 
 	defer func() {
 		owner_idFin()
 	}()
-	return C.igIsMouseClicked_ID(C.ImGuiMouseButton(button), owner_idArg, C.ImGuiInputFlags(flags)) == C.bool(true)
+	return C.igIsMouseClicked_InputFlags(C.ImGuiMouseButton(button), C.ImGuiInputFlags(flags), owner_idArg) == C.bool(true)
 }
 
 func InternalIsMouseDoubleClickedID(button MouseButton, owner_id ID) bool {
@@ -7794,7 +7891,7 @@ func InternalIsMouseDragPastThresholdV(button MouseButton, lock_threshold float3
 	return C.igIsMouseDragPastThreshold(C.ImGuiMouseButton(button), C.float(lock_threshold)) == C.bool(true)
 }
 
-// is mouse dragging? (if lock_threshold < -1.0f, uses io.MouseDraggingThreshold)
+// is mouse dragging? (uses io.MouseDraggingThreshold if lock_threshold < 0.0f)
 // IsMouseDraggingV parameter default value hint:
 // lock_threshold: -1.0f
 func IsMouseDraggingV(button MouseButton, lock_threshold float32) bool {
@@ -7842,8 +7939,8 @@ func InternalIsNamedKey(key Key) bool {
 	return C.igIsNamedKey(C.ImGuiKey(key)) == C.bool(true)
 }
 
-func InternalIsNamedKeyOrModKey(key Key) bool {
-	return C.igIsNamedKeyOrModKey(C.ImGuiKey(key)) == C.bool(true)
+func InternalIsNamedKeyOrMod(key Key) bool {
+	return C.igIsNamedKeyOrMod(C.ImGuiKey(key)) == C.bool(true)
 }
 
 func InternalIsPopupOpenID(id ID, popup_flags PopupFlags) bool {
@@ -9008,7 +9105,7 @@ func InternalSetItemKeyOwnerV(key Key, flags InputFlags) {
 	C.igSetItemKeyOwner(C.ImGuiKey(key), C.ImGuiInputFlags(flags))
 }
 
-// set a text-only tooltip if preceeding item was hovered. override any previous call to SetTooltip().
+// set a text-only tooltip if preceding item was hovered. override any previous call to SetTooltip().
 func SetItemTooltip(fmt string) {
 	fmtArg, fmtFin := WrapString(fmt)
 	C.wrap_igSetItemTooltip(fmtArg)
@@ -9100,9 +9197,15 @@ func SetNextItemOpenV(is_open bool, cond Cond) {
 	C.igSetNextItemOpen(C.bool(is_open), C.ImGuiCond(cond))
 }
 
-func InternalSetNextItemShortcut(key_chord KeyChord) {
+func InternalSetNextItemRefVal(data_type DataType, p_data uintptr) {
+	C.wrap_igSetNextItemRefVal(C.ImGuiDataType(data_type), C.uintptr_t(p_data))
+}
+
+// SetNextItemShortcutV parameter default value hint:
+// flags: 0
+func SetNextItemShortcutV(key_chord KeyChord, flags InputFlags) {
 	key_chordArg, key_chordFin := key_chord.c()
-	C.igSetNextItemShortcut(key_chordArg)
+	C.igSetNextItemShortcut(key_chordArg, C.ImGuiInputFlags(flags))
 
 	key_chordFin()
 }
@@ -9158,6 +9261,10 @@ func SetNextWindowFocus() {
 // pivot: ImVec2(0,0)
 func SetNextWindowPosV(pos Vec2, cond Cond, pivot Vec2) {
 	C.igSetNextWindowPos(pos.toC(), C.ImGuiCond(cond), pivot.toC())
+}
+
+func InternalSetNextWindowRefreshPolicy(flags WindowRefreshFlags) {
+	C.igSetNextWindowRefreshPolicy(C.ImGuiWindowRefreshFlags(flags))
 }
 
 // set next window scrolling value (use < 0.0f to not affect a given axis).
@@ -9247,9 +9354,7 @@ func InternalSetScrollYWindowPtr(window *Window, scroll_y float32) {
 }
 
 // owner_id needs to be explicit and cannot be 0
-// InternalSetShortcutRoutingV parameter default value hint:
-// flags: 0
-func InternalSetShortcutRoutingV(key_chord KeyChord, owner_id ID, flags InputFlags) bool {
+func InternalSetShortcutRouting(key_chord KeyChord, flags InputFlags, owner_id ID) bool {
 	key_chordArg, key_chordFin := key_chord.c()
 	owner_idArg, owner_idFin := owner_id.c()
 
@@ -9257,7 +9362,7 @@ func InternalSetShortcutRoutingV(key_chord KeyChord, owner_id ID, flags InputFla
 		key_chordFin()
 		owner_idFin()
 	}()
-	return C.igSetShortcutRouting(key_chordArg, owner_idArg, C.ImGuiInputFlags(flags)) == C.bool(true)
+	return C.igSetShortcutRouting(key_chordArg, C.ImGuiInputFlags(flags), owner_idArg) == C.bool(true)
 }
 
 // replace current window storage with our own (if you want to manipulate it yourself, typically clear subsection of it)
@@ -9450,10 +9555,7 @@ func InternalShadeVertsTransformPos(draw_list *DrawList, vert_start_idx int32, v
 	draw_listFin()
 }
 
-// InternalShortcutV parameter default value hint:
-// owner_id: 0
-// flags: 0
-func InternalShortcutV(key_chord KeyChord, owner_id ID, flags InputFlags) bool {
+func InternalShortcutID(key_chord KeyChord, flags InputFlags, owner_id ID) bool {
 	key_chordArg, key_chordFin := key_chord.c()
 	owner_idArg, owner_idFin := owner_id.c()
 
@@ -9461,7 +9563,18 @@ func InternalShortcutV(key_chord KeyChord, owner_id ID, flags InputFlags) bool {
 		key_chordFin()
 		owner_idFin()
 	}()
-	return C.igShortcut(key_chordArg, owner_idArg, C.ImGuiInputFlags(flags)) == C.bool(true)
+	return C.igShortcut_ID(key_chordArg, C.ImGuiInputFlags(flags), owner_idArg) == C.bool(true)
+}
+
+// ShortcutNilV parameter default value hint:
+// flags: 0
+func ShortcutNilV(key_chord KeyChord, flags InputFlags) bool {
+	key_chordArg, key_chordFin := key_chord.c()
+
+	defer func() {
+		key_chordFin()
+	}()
+	return C.igShortcut_Nil(key_chordArg, C.ImGuiInputFlags(flags)) == C.bool(true)
 }
 
 // create About window. display Dear ImGui version, credits and build/system information.
@@ -10085,10 +10198,13 @@ func TableAngledHeadersRow() {
 	C.igTableAngledHeadersRow()
 }
 
-// InternalTableAngledHeadersRowExV parameter default value hint:
-// max_label_width: 0.0f
-func InternalTableAngledHeadersRowExV(angle float32, max_label_width float32) {
-	C.igTableAngledHeadersRowEx(C.float(angle), C.float(max_label_width))
+func InternalTableAngledHeadersRowEx(row_id ID, angle float32, max_label_width float32, data *TableHeaderData, data_count int32) {
+	row_idArg, row_idFin := row_id.c()
+	dataArg, dataFin := data.handle()
+	C.igTableAngledHeadersRowEx(row_idArg, C.float(angle), C.float(max_label_width), dataArg, C.int(data_count))
+
+	row_idFin()
+	dataFin()
 }
 
 func InternalTableBeginApplyRequests(table *Table) {
@@ -10289,8 +10405,8 @@ func InternalTableGetHeaderRowHeight() float32 {
 	return float32(C.igTableGetHeaderRowHeight())
 }
 
-// May use (TableGetColumnFlags() & ImGuiTableColumnFlags_IsHovered) instead. Return hovered column. return -1 when table is not hovered. return columns_count if the unused space at the right of visible columns is hovered.
-func InternalTableGetHoveredColumn() int32 {
+// return hovered column. return -1 when table is not hovered. return columns_count if the unused space at the right of visible columns is hovered. Can also use (TableGetColumnFlags() & ImGuiTableColumnFlags_IsHovered) instead.
+func TableGetHoveredColumn() int32 {
 	return int32(C.igTableGetHoveredColumn())
 }
 
@@ -10628,6 +10744,28 @@ func InternalTextExV(text string, flags TextFlags) {
 	textFin()
 }
 
+// hyperlink text button, return true when clicked
+func TextLink(label string) bool {
+	labelArg, labelFin := WrapString(label)
+
+	defer func() {
+		labelFin()
+	}()
+	return C.igTextLink(labelArg) == C.bool(true)
+}
+
+// hyperlink text button, automatically open file/url when clicked
+// TextLinkOpenURLV parameter default value hint:
+// url: NULL
+func TextLinkOpenURLV(label string, url string) {
+	labelArg, labelFin := WrapString(label)
+	urlArg, urlFin := WrapString(url)
+	C.igTextLinkOpenURL(labelArg, urlArg)
+
+	labelFin()
+	urlFin()
+}
+
 // raw text without formatting. Roughly equivalent to Text("%s", text) but: A) doesn't require null terminated string if 'text_end' is specified, B) it's faster, no memory copy is done, no buffer size limits, recommended for long chunks of text.
 // TextUnformattedV parameter default value hint:
 func TextUnformattedV(text string) {
@@ -10808,6 +10946,13 @@ func InternalUpdateWindowParentAndRootLinks(window *Window, flags WindowFlags, p
 	parent_windowFin()
 }
 
+func InternalUpdateWindowSkipRefresh(window *Window) {
+	windowArg, windowFin := window.handle()
+	C.igUpdateWindowSkipRefresh(windowArg)
+
+	windowFin()
+}
+
 // VSliderFloatV parameter default value hint:
 // format: "%.3f"
 // flags: 0
@@ -10971,16 +11116,16 @@ func (self *DrawList) AddCircleFilled(center Vec2, radius float32, col uint32) {
 	selfFin()
 }
 
-func (self *DrawList) AddEllipse(center Vec2, radius_x float32, radius_y float32, col uint32) {
+func (self *DrawList) AddEllipse(center Vec2, radius Vec2, col uint32) {
 	selfArg, selfFin := self.handle()
-	C.wrap_ImDrawList_AddEllipse(selfArg, center.toC(), C.float(radius_x), C.float(radius_y), C.ImU32(col))
+	C.wrap_ImDrawList_AddEllipse(selfArg, center.toC(), radius.toC(), C.ImU32(col))
 
 	selfFin()
 }
 
-func (self *DrawList) AddEllipseFilled(center Vec2, radius_x float32, radius_y float32, col uint32) {
+func (self *DrawList) AddEllipseFilled(center Vec2, radius Vec2, col uint32) {
 	selfArg, selfFin := self.handle()
-	C.wrap_ImDrawList_AddEllipseFilled(selfArg, center.toC(), C.float(radius_x), C.float(radius_y), C.ImU32(col))
+	C.wrap_ImDrawList_AddEllipseFilled(selfArg, center.toC(), radius.toC(), C.ImU32(col))
 
 	selfFin()
 }
@@ -11095,9 +11240,9 @@ func (self *DrawList) PathBezierQuadraticCurveTo(p2 Vec2, p3 Vec2) {
 	selfFin()
 }
 
-func (self *DrawList) PathEllipticalArcTo(center Vec2, radius_x float32, radius_y float32, rot float32, a_min float32, a_max float32) {
+func (self *DrawList) PathEllipticalArcTo(center Vec2, radius Vec2, rot float32, a_min float32, a_max float32) {
 	selfArg, selfFin := self.handle()
-	C.wrap_ImDrawList_PathEllipticalArcTo(selfArg, center.toC(), C.float(radius_x), C.float(radius_y), C.float(rot), C.float(a_min), C.float(a_max))
+	C.wrap_ImDrawList_PathEllipticalArcTo(selfArg, center.toC(), radius.toC(), C.float(rot), C.float(a_min), C.float(a_max))
 
 	selfFin()
 }
@@ -11491,13 +11636,13 @@ func BeginTabItem(label string) bool {
 	return C.wrap_igBeginTabItem(labelArg) == C.bool(true)
 }
 
-func BeginTable(str_id string, column int32) bool {
+func BeginTable(str_id string, columns int32) bool {
 	str_idArg, str_idFin := WrapString(str_id)
 
 	defer func() {
 		str_idFin()
 	}()
-	return C.wrap_igBeginTable(str_idArg, C.int(column)) == C.bool(true)
+	return C.wrap_igBeginTable(str_idArg, C.int(columns)) == C.bool(true)
 }
 
 func InternalBeginTableEx(name string, id ID, columns_count int32) bool {
@@ -11690,6 +11835,17 @@ func CreateContext() *Context {
 	return newContextFromC(C.wrap_igCreateContext())
 }
 
+func InternalDataTypeApplyFromText(buf string, data_type DataType, p_data uintptr, format string) bool {
+	bufArg, bufFin := WrapString(buf)
+	formatArg, formatFin := WrapString(format)
+
+	defer func() {
+		bufFin()
+		formatFin()
+	}()
+	return C.wrap_igDataTypeApplyFromText(bufArg, C.ImGuiDataType(data_type), C.uintptr_t(p_data), formatArg) == C.bool(true)
+}
+
 func InternalDebugDrawCursorPos() {
 	C.wrap_igDebugDrawCursorPos()
 }
@@ -11726,13 +11882,13 @@ func InternalDockContextProcessUndockWindow(ctx *Context, window *Window) {
 	windowFin()
 }
 
-func DockSpace(id ID) ID {
-	idArg, idFin := id.c()
+func DockSpace(dockspace_id ID) ID {
+	dockspace_idArg, dockspace_idFin := dockspace_id.c()
 
 	defer func() {
-		idFin()
+		dockspace_idFin()
 	}()
-	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_igDockSpace(idArg); return &result }())
+	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_igDockSpace(dockspace_idArg); return &result }())
 }
 
 func DockSpaceOverViewport() ID {
@@ -11929,6 +12085,10 @@ func InternalFocusWindow(window *Window) {
 	windowFin()
 }
 
+func BackgroundDrawList() *DrawList {
+	return newDrawListFromC(C.wrap_igGetBackgroundDrawList())
+}
+
 func ColorU32Col(idx Col) uint32 {
 	return uint32(C.wrap_igGetColorU32_Col(C.ImGuiCol(idx)))
 }
@@ -11943,6 +12103,10 @@ func ColumnOffset() float32 {
 
 func ColumnWidth() float32 {
 	return float32(C.wrap_igGetColumnWidth())
+}
+
+func ForegroundDrawListViewportPtr() *DrawList {
+	return newDrawListFromC(C.wrap_igGetForegroundDrawList_ViewportPtr())
 }
 
 func MouseDragDelta() Vec2 {
@@ -12220,41 +12384,29 @@ func IsItemHovered() bool {
 	return C.wrap_igIsItemHovered() == C.bool(true)
 }
 
-func InternalIsKeyChordPressedID(key_chord KeyChord, owner_id ID) bool {
+func InternalIsKeyChordPressedInputFlags(key_chord KeyChord, flags InputFlags) bool {
 	key_chordArg, key_chordFin := key_chord.c()
-	owner_idArg, owner_idFin := owner_id.c()
 
 	defer func() {
 		key_chordFin()
-		owner_idFin()
 	}()
-	return C.wrap_igIsKeyChordPressed_ID(key_chordArg, owner_idArg) == C.bool(true)
+	return C.wrap_igIsKeyChordPressed_InputFlags(key_chordArg, C.ImGuiInputFlags(flags)) == C.bool(true)
 }
 
 func IsKeyPressedBool(key Key) bool {
 	return C.wrap_igIsKeyPressed_Bool(C.ImGuiKey(key)) == C.bool(true)
 }
 
-func InternalIsKeyPressedID(key Key, owner_id ID) bool {
-	owner_idArg, owner_idFin := owner_id.c()
-
-	defer func() {
-		owner_idFin()
-	}()
-	return C.wrap_igIsKeyPressed_ID(C.ImGuiKey(key), owner_idArg) == C.bool(true)
+func InternalIsKeyPressedInputFlags(key Key, flags InputFlags) bool {
+	return C.wrap_igIsKeyPressed_InputFlags(C.ImGuiKey(key), C.ImGuiInputFlags(flags)) == C.bool(true)
 }
 
 func IsMouseClickedBool(button MouseButton) bool {
 	return C.wrap_igIsMouseClicked_Bool(C.ImGuiMouseButton(button)) == C.bool(true)
 }
 
-func InternalIsMouseClickedID(button MouseButton, owner_id ID) bool {
-	owner_idArg, owner_idFin := owner_id.c()
-
-	defer func() {
-		owner_idFin()
-	}()
-	return C.wrap_igIsMouseClicked_ID(C.ImGuiMouseButton(button), owner_idArg) == C.bool(true)
+func InternalIsMouseClickedInputFlags(button MouseButton, flags InputFlags) bool {
+	return C.wrap_igIsMouseClicked_InputFlags(C.ImGuiMouseButton(button), C.ImGuiInputFlags(flags)) == C.bool(true)
 }
 
 func InternalIsMouseDragPastThreshold(button MouseButton) bool {
@@ -12606,6 +12758,13 @@ func SetNextItemOpen(is_open bool) {
 	C.wrap_igSetNextItemOpen(C.bool(is_open))
 }
 
+func SetNextItemShortcut(key_chord KeyChord) {
+	key_chordArg, key_chordFin := key_chord.c()
+	C.wrap_igSetNextItemShortcut(key_chordArg)
+
+	key_chordFin()
+}
+
 func SetNextWindowCollapsed(collapsed bool) {
 	C.wrap_igSetNextWindowCollapsed(C.bool(collapsed))
 }
@@ -12643,17 +12802,6 @@ func SetScrollHereX() {
 
 func SetScrollHereY() {
 	C.wrap_igSetScrollHereY()
-}
-
-func InternalSetShortcutRouting(key_chord KeyChord, owner_id ID) bool {
-	key_chordArg, key_chordFin := key_chord.c()
-	owner_idArg, owner_idFin := owner_id.c()
-
-	defer func() {
-		key_chordFin()
-		owner_idFin()
-	}()
-	return C.wrap_igSetShortcutRouting(key_chordArg, owner_idArg) == C.bool(true)
 }
 
 func SetWindowCollapsedBool(collapsed bool) {
@@ -12710,13 +12858,13 @@ func InternalSetWindowSizeWindowPtr(window *Window, size Vec2) {
 	windowFin()
 }
 
-func InternalShortcut(key_chord KeyChord) bool {
+func Shortcut(key_chord KeyChord) bool {
 	key_chordArg, key_chordFin := key_chord.c()
 
 	defer func() {
 		key_chordFin()
 	}()
-	return C.wrap_igShortcut(key_chordArg) == C.bool(true)
+	return C.wrap_igShortcut_Nil(key_chordArg) == C.bool(true)
 }
 
 func ShowAboutWindow() {
@@ -12936,10 +13084,6 @@ func TabItemButton(label string) bool {
 	return C.wrap_igTabItemButton(labelArg) == C.bool(true)
 }
 
-func InternalTableAngledHeadersRowEx(angle float32) {
-	C.wrap_igTableAngledHeadersRowEx(C.float(angle))
-}
-
 func TableGetColumnFlags() TableColumnFlags {
 	return TableColumnFlags(C.wrap_igTableGetColumnFlags())
 }
@@ -12997,6 +13141,13 @@ func InternalTextEx(text string) {
 	C.wrap_igTextEx(textArg, C.int(len(text)))
 
 	textFin()
+}
+
+func TextLinkOpenURL(label string) {
+	labelArg, labelFin := WrapString(label)
+	C.wrap_igTextLinkOpenURL(labelArg)
+
+	labelFin()
 }
 
 func TextUnformatted(text string) {
@@ -13477,23 +13628,6 @@ func (self *DrawList) Data() *DrawListSharedData {
 	return newDrawListSharedDataFromC(C.wrap_ImDrawList_Get_Data(selfArg))
 }
 
-func (self DrawList) SetOwnerName(v string) {
-	vArg, _ := WrapString(v)
-
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImDrawList_Set_OwnerName(selfArg, vArg)
-}
-
-func (self *DrawList) OwnerName() string {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return C.GoString(C.wrap_ImDrawList_Get_OwnerName(selfArg))
-}
-
 func (self DrawList) SetVtxWritePtr(v *DrawVert) {
 	vArg, _ := v.handle()
 
@@ -13509,43 +13643,6 @@ func (self *DrawList) VtxWritePtr() *DrawVert {
 		selfFin()
 	}()
 	return newDrawVertFromC(C.wrap_ImDrawList_Get_VtxWritePtr(selfArg))
-}
-
-func (self DrawList) SetClipRectStack(v Vector[*Vec4]) {
-	vData := v.Data
-	vDataArg, _ := wrap[C.ImVec4, *Vec4](vData)
-	vVecArg := new(C.ImVector_ImVec4)
-	vVecArg.Size = C.int(v.Size)
-	vVecArg.Capacity = C.int(v.Capacity)
-	vVecArg.Data = vDataArg
-	v.pinner.Pin(vVecArg.Data)
-
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImDrawList_Set_ClipRectStack(selfArg, *vVecArg)
-}
-
-func (self DrawList) SetTextureIdStack(v Vector[*TextureID]) {
-	vData := v.Data
-	vDataArg, _ := vData.handle()
-	vVecArg := new(C.ImVector_ImTextureID)
-	vVecArg.Size = C.int(v.Size)
-	vVecArg.Capacity = C.int(v.Capacity)
-	vVecArg.Data = vDataArg
-	v.pinner.Pin(vVecArg.Data)
-
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImDrawList_Set_TextureIdStack(selfArg, *vVecArg)
-}
-
-func (self *DrawList) TextureIdStack() Vector[*TextureID] {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return newVectorFromC(C.wrap_ImDrawList_Get_TextureIdStack(selfArg).Size, C.wrap_ImDrawList_Get_TextureIdStack(selfArg).Capacity, newTextureIDFromC(C.wrap_ImDrawList_Get_TextureIdStack(selfArg).Data))
 }
 
 func (self DrawList) SetPath(v Vector[*Vec2]) {
@@ -13596,6 +13693,43 @@ func (self *DrawList) Splitter() DrawListSplitter {
 	return *newDrawListSplitterFromC(func() *C.ImDrawListSplitter { result := C.wrap_ImDrawList_Get_Splitter(selfArg); return &result }())
 }
 
+func (self DrawList) SetClipRectStack(v Vector[*Vec4]) {
+	vData := v.Data
+	vDataArg, _ := wrap[C.ImVec4, *Vec4](vData)
+	vVecArg := new(C.ImVector_ImVec4)
+	vVecArg.Size = C.int(v.Size)
+	vVecArg.Capacity = C.int(v.Capacity)
+	vVecArg.Data = vDataArg
+	v.pinner.Pin(vVecArg.Data)
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImDrawList_Set_ClipRectStack(selfArg, *vVecArg)
+}
+
+func (self DrawList) SetTextureIdStack(v Vector[*TextureID]) {
+	vData := v.Data
+	vDataArg, _ := vData.handle()
+	vVecArg := new(C.ImVector_ImTextureID)
+	vVecArg.Size = C.int(v.Size)
+	vVecArg.Capacity = C.int(v.Capacity)
+	vVecArg.Data = vDataArg
+	v.pinner.Pin(vVecArg.Data)
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImDrawList_Set_TextureIdStack(selfArg, *vVecArg)
+}
+
+func (self *DrawList) TextureIdStack() Vector[*TextureID] {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return newVectorFromC(C.wrap_ImDrawList_Get_TextureIdStack(selfArg).Size, C.wrap_ImDrawList_Get_TextureIdStack(selfArg).Capacity, newTextureIDFromC(C.wrap_ImDrawList_Get_TextureIdStack(selfArg).Data))
+}
+
 func (self DrawList) SetFringeScale(v float32) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -13609,6 +13743,23 @@ func (self *DrawList) FringeScale() float32 {
 		selfFin()
 	}()
 	return float32(C.wrap_ImDrawList_Get_FringeScale(selfArg))
+}
+
+func (self DrawList) SetOwnerName(v string) {
+	vArg, _ := WrapString(v)
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImDrawList_Set_OwnerName(selfArg, vArg)
+}
+
+func (self *DrawList) OwnerName() string {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.GoString(C.wrap_ImDrawList_Get_OwnerName(selfArg))
 }
 
 func (self DrawListSharedData) SetTexUvWhitePixel(v Vec2) {
@@ -13656,6 +13807,21 @@ func (self *DrawListSharedData) FontSize() float32 {
 		selfFin()
 	}()
 	return float32(C.wrap_ImDrawListSharedData_GetFontSize(selfArg))
+}
+
+func (self DrawListSharedData) SetFontScale(v float32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImDrawListSharedData_SetFontScale(selfArg, C.float(v))
+}
+
+func (self *DrawListSharedData) FontScale() float32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return float32(C.wrap_ImDrawListSharedData_GetFontScale(selfArg))
 }
 
 func (self DrawListSharedData) SetCurveTessellationTol(v float32) {
@@ -15534,6 +15700,36 @@ func (self *Context) FontBaseSize() float32 {
 	return float32(C.wrap_ImGuiContext_GetFontBaseSize(selfArg))
 }
 
+func (self Context) SetFontScale(v float32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetFontScale(selfArg, C.float(v))
+}
+
+func (self *Context) FontScale() float32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return float32(C.wrap_ImGuiContext_GetFontScale(selfArg))
+}
+
+func (self Context) SetCurrentDpiScale(v float32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetCurrentDpiScale(selfArg, C.float(v))
+}
+
+func (self *Context) CurrentDpiScale() float32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return float32(C.wrap_ImGuiContext_GetCurrentDpiScale(selfArg))
+}
+
 func (self Context) SetDrawListSharedData(v DrawListSharedData) {
 	vArg, _ := v.c()
 
@@ -15717,6 +15913,38 @@ func (self *Context) TestEngine() uintptr {
 		selfFin()
 	}()
 	return uintptr(C.wrap_ImGuiContext_GetTestEngine(selfArg))
+}
+
+func (self Context) SetContextName(v *[16]rune) {
+	vArg := make([]C.char, len(v))
+	for i, vV := range v {
+		vArg[i] = C.char(vV)
+	}
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetContextName(selfArg, (*C.char)(&vArg[0]))
+
+	for i, vV := range vArg {
+		(*v)[i] = rune(vV)
+	}
+}
+
+func (self *Context) ContextName() [16]rune {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return func() [16]rune {
+		result := [16]rune{}
+		resultMirr := C.wrap_ImGuiContext_GetContextName(selfArg)
+		for i := range result {
+			result[i] = rune(C.cimgui_char_GetAtIdx(resultMirr, C.int(i)))
+		}
+
+		return result
+	}()
 }
 
 func (self Context) SetInputEventsQueue(v Vector[*InputEvent]) {
@@ -15933,6 +16161,23 @@ func (self *Context) HoveredWindowUnderMovingWindow() *Window {
 	return newWindowFromC(C.wrap_ImGuiContext_GetHoveredWindowUnderMovingWindow(selfArg))
 }
 
+func (self Context) SetHoveredWindowBeforeClear(v *Window) {
+	vArg, _ := v.handle()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetHoveredWindowBeforeClear(selfArg, vArg)
+}
+
+func (self *Context) HoveredWindowBeforeClear() *Window {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return newWindowFromC(C.wrap_ImGuiContext_GetHoveredWindowBeforeClear(selfArg))
+}
+
 func (self Context) SetMovingWindow(v *Window) {
 	vArg, _ := v.handle()
 
@@ -16108,36 +16353,6 @@ func (self *Context) HoveredIdPreviousFrame() ID {
 	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiContext_GetHoveredIdPreviousFrame(selfArg); return &result }())
 }
 
-func (self Context) SetHoveredIdAllowOverlap(v bool) {
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetHoveredIdAllowOverlap(selfArg, C.bool(v))
-}
-
-func (self *Context) HoveredIdAllowOverlap() bool {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return C.wrap_ImGuiContext_GetHoveredIdAllowOverlap(selfArg) == C.bool(true)
-}
-
-func (self Context) SetHoveredIdDisabled(v bool) {
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetHoveredIdDisabled(selfArg, C.bool(v))
-}
-
-func (self *Context) HoveredIdDisabled() bool {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return C.wrap_ImGuiContext_GetHoveredIdDisabled(selfArg) == C.bool(true)
-}
-
 func (self Context) SetHoveredIdTimer(v float32) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -16166,6 +16381,51 @@ func (self *Context) HoveredIdNotActiveTimer() float32 {
 		selfFin()
 	}()
 	return float32(C.wrap_ImGuiContext_GetHoveredIdNotActiveTimer(selfArg))
+}
+
+func (self Context) SetHoveredIdAllowOverlap(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetHoveredIdAllowOverlap(selfArg, C.bool(v))
+}
+
+func (self *Context) HoveredIdAllowOverlap() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiContext_GetHoveredIdAllowOverlap(selfArg) == C.bool(true)
+}
+
+func (self Context) SetHoveredIdIsDisabled(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetHoveredIdIsDisabled(selfArg, C.bool(v))
+}
+
+func (self *Context) HoveredIdIsDisabled() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiContext_GetHoveredIdIsDisabled(selfArg) == C.bool(true)
+}
+
+func (self Context) SetItemUnclipByLog(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetItemUnclipByLog(selfArg, C.bool(v))
+}
+
+func (self *Context) ItemUnclipByLog() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiContext_GetItemUnclipByLog(selfArg) == C.bool(true)
 }
 
 func (self Context) SetActiveId(v ID) {
@@ -16934,21 +17194,6 @@ func (self *Context) NavTreeNodeStack() Vector[*NavTreeNodeData] {
 	return newVectorFromC(C.wrap_ImGuiContext_GetNavTreeNodeStack(selfArg).Size, C.wrap_ImGuiContext_GetNavTreeNodeStack(selfArg).Capacity, newNavTreeNodeDataFromC(C.wrap_ImGuiContext_GetNavTreeNodeStack(selfArg).Data))
 }
 
-func (self Context) SetCurrentDpiScale(v float32) {
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetCurrentDpiScale(selfArg, C.float(v))
-}
-
-func (self *Context) CurrentDpiScale() float32 {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return float32(C.wrap_ImGuiContext_GetCurrentDpiScale(selfArg))
-}
-
 func (self Context) SetCurrentViewport(v *ViewportP) {
 	vArg, _ := v.handle()
 
@@ -17151,27 +17396,19 @@ func (self *Context) NavFocusScopeId() ID {
 	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiContext_GetNavFocusScopeId(selfArg); return &result }())
 }
 
-func (self Context) SetNavFocusRoute(v Vector[*FocusScopeData]) {
-	vData := v.Data
-	vDataArg, _ := vData.handle()
-	vVecArg := new(C.ImVector_ImGuiFocusScopeData)
-	vVecArg.Size = C.int(v.Size)
-	vVecArg.Capacity = C.int(v.Capacity)
-	vVecArg.Data = vDataArg
-	v.pinner.Pin(vVecArg.Data)
-
+func (self Context) SetNavLayer(v NavLayer) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
-	C.wrap_ImGuiContext_SetNavFocusRoute(selfArg, *vVecArg)
+	C.wrap_ImGuiContext_SetNavLayer(selfArg, C.ImGuiNavLayer(v))
 }
 
-func (self *Context) NavFocusRoute() Vector[*FocusScopeData] {
+func (self *Context) NavLayer() NavLayer {
 	selfArg, selfFin := self.handle()
 
 	defer func() {
 		selfFin()
 	}()
-	return newVectorFromC(C.wrap_ImGuiContext_GetNavFocusRoute(selfArg).Size, C.wrap_ImGuiContext_GetNavFocusRoute(selfArg).Capacity, newFocusScopeDataFromC(C.wrap_ImGuiContext_GetNavFocusRoute(selfArg).Data))
+	return NavLayer(C.wrap_ImGuiContext_GetNavLayer(selfArg))
 }
 
 func (self Context) SetNavActivateId(v ID) {
@@ -17240,6 +17477,29 @@ func (self *Context) NavActivateFlags() ActivateFlags {
 	return ActivateFlags(C.wrap_ImGuiContext_GetNavActivateFlags(selfArg))
 }
 
+func (self Context) SetNavFocusRoute(v Vector[*FocusScopeData]) {
+	vData := v.Data
+	vDataArg, _ := vData.handle()
+	vVecArg := new(C.ImVector_ImGuiFocusScopeData)
+	vVecArg.Size = C.int(v.Size)
+	vVecArg.Capacity = C.int(v.Capacity)
+	vVecArg.Data = vDataArg
+	v.pinner.Pin(vVecArg.Data)
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetNavFocusRoute(selfArg, *vVecArg)
+}
+
+func (self *Context) NavFocusRoute() Vector[*FocusScopeData] {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return newVectorFromC(C.wrap_ImGuiContext_GetNavFocusRoute(selfArg).Size, C.wrap_ImGuiContext_GetNavFocusRoute(selfArg).Capacity, newFocusScopeDataFromC(C.wrap_ImGuiContext_GetNavFocusRoute(selfArg).Data))
+}
+
 func (self Context) SetNavHighlightActivatedId(v ID) {
 	vArg, _ := v.c()
 
@@ -17270,63 +17530,6 @@ func (self *Context) NavHighlightActivatedTimer() float32 {
 		selfFin()
 	}()
 	return float32(C.wrap_ImGuiContext_GetNavHighlightActivatedTimer(selfArg))
-}
-
-func (self Context) SetNavJustMovedToId(v ID) {
-	vArg, _ := v.c()
-
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetNavJustMovedToId(selfArg, vArg)
-}
-
-func (self *Context) NavJustMovedToId() ID {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiContext_GetNavJustMovedToId(selfArg); return &result }())
-}
-
-func (self Context) SetNavJustMovedToFocusScopeId(v ID) {
-	vArg, _ := v.c()
-
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetNavJustMovedToFocusScopeId(selfArg, vArg)
-}
-
-func (self *Context) NavJustMovedToFocusScopeId() ID {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return *newIDFromC(func() *C.ImGuiID {
-		result := C.wrap_ImGuiContext_GetNavJustMovedToFocusScopeId(selfArg)
-		return &result
-	}())
-}
-
-func (self Context) SetNavJustMovedToKeyMods(v KeyChord) {
-	vArg, _ := v.c()
-
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetNavJustMovedToKeyMods(selfArg, vArg)
-}
-
-func (self *Context) NavJustMovedToKeyMods() KeyChord {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return *newKeyChordFromC(func() *C.ImGuiKeyChord {
-		result := C.wrap_ImGuiContext_GetNavJustMovedToKeyMods(selfArg)
-		return &result
-	}())
 }
 
 func (self Context) SetNavNextActivateId(v ID) {
@@ -17374,21 +17577,6 @@ func (self *Context) NavInputSource() InputSource {
 		selfFin()
 	}()
 	return InputSource(C.wrap_ImGuiContext_GetNavInputSource(selfArg))
-}
-
-func (self Context) SetNavLayer(v NavLayer) {
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetNavLayer(selfArg, C.ImGuiNavLayer(v))
-}
-
-func (self *Context) NavLayer() NavLayer {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return NavLayer(C.wrap_ImGuiContext_GetNavLayer(selfArg))
 }
 
 func (self Context) SetNavIdIsAlive(v bool) {
@@ -17803,6 +17991,113 @@ func (self *Context) NavTabbingResultFirst() NavItemData {
 		result := C.wrap_ImGuiContext_GetNavTabbingResultFirst(selfArg)
 		return &result
 	}())
+}
+
+func (self Context) SetNavJustMovedFromFocusScopeId(v ID) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetNavJustMovedFromFocusScopeId(selfArg, vArg)
+}
+
+func (self *Context) NavJustMovedFromFocusScopeId() ID {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newIDFromC(func() *C.ImGuiID {
+		result := C.wrap_ImGuiContext_GetNavJustMovedFromFocusScopeId(selfArg)
+		return &result
+	}())
+}
+
+func (self Context) SetNavJustMovedToId(v ID) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetNavJustMovedToId(selfArg, vArg)
+}
+
+func (self *Context) NavJustMovedToId() ID {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiContext_GetNavJustMovedToId(selfArg); return &result }())
+}
+
+func (self Context) SetNavJustMovedToFocusScopeId(v ID) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetNavJustMovedToFocusScopeId(selfArg, vArg)
+}
+
+func (self *Context) NavJustMovedToFocusScopeId() ID {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newIDFromC(func() *C.ImGuiID {
+		result := C.wrap_ImGuiContext_GetNavJustMovedToFocusScopeId(selfArg)
+		return &result
+	}())
+}
+
+func (self Context) SetNavJustMovedToKeyMods(v KeyChord) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetNavJustMovedToKeyMods(selfArg, vArg)
+}
+
+func (self *Context) NavJustMovedToKeyMods() KeyChord {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newKeyChordFromC(func() *C.ImGuiKeyChord {
+		result := C.wrap_ImGuiContext_GetNavJustMovedToKeyMods(selfArg)
+		return &result
+	}())
+}
+
+func (self Context) SetNavJustMovedToIsTabbing(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetNavJustMovedToIsTabbing(selfArg, C.bool(v))
+}
+
+func (self *Context) NavJustMovedToIsTabbing() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiContext_GetNavJustMovedToIsTabbing(selfArg) == C.bool(true)
+}
+
+func (self Context) SetNavJustMovedToHasSelectionData(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetNavJustMovedToHasSelectionData(selfArg, C.bool(v))
+}
+
+func (self *Context) NavJustMovedToHasSelectionData() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiContext_GetNavJustMovedToHasSelectionData(selfArg) == C.bool(true)
 }
 
 func (self Context) SetConfigNavWindowingKeyNext(v KeyChord) {
@@ -18728,6 +19023,26 @@ func (self *Context) TempInputId() ID {
 	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiContext_GetTempInputId(selfArg); return &result }())
 }
 
+func (self Context) SetDataTypeZeroValue(v DataTypeStorage) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetDataTypeZeroValue(selfArg, vArg)
+}
+
+func (self *Context) DataTypeZeroValue() DataTypeStorage {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newDataTypeStorageFromC(func() *C.ImGuiDataTypeStorage {
+		result := C.wrap_ImGuiContext_GetDataTypeZeroValue(selfArg)
+		return &result
+	}())
+}
+
 func (self Context) SetBeginMenuDepth(v int32) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -18917,6 +19232,36 @@ func (self *Context) WindowResizeRelativeMode() bool {
 	return C.wrap_ImGuiContext_GetWindowResizeRelativeMode(selfArg) == C.bool(true)
 }
 
+func (self Context) SetScrollbarSeekMode(v int16) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetScrollbarSeekMode(selfArg, C.short(v))
+}
+
+func (self *Context) ScrollbarSeekMode() int16 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return int16(C.wrap_ImGuiContext_GetScrollbarSeekMode(selfArg))
+}
+
+func (self Context) SetScrollbarClickDeltaToGrabCenter(v float32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiContext_SetScrollbarClickDeltaToGrabCenter(selfArg, C.float(v))
+}
+
+func (self *Context) ScrollbarClickDeltaToGrabCenter() float32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return float32(C.wrap_ImGuiContext_GetScrollbarClickDeltaToGrabCenter(selfArg))
+}
+
 func (self Context) SetSliderGrabClickOffset(v float32) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -19005,21 +19350,6 @@ func (self *Context) DragSpeedDefaultRatio() float32 {
 		selfFin()
 	}()
 	return float32(C.wrap_ImGuiContext_GetDragSpeedDefaultRatio(selfArg))
-}
-
-func (self Context) SetScrollbarClickDeltaToGrabCenter(v float32) {
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiContext_SetScrollbarClickDeltaToGrabCenter(selfArg, C.float(v))
-}
-
-func (self *Context) ScrollbarClickDeltaToGrabCenter() float32 {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return float32(C.wrap_ImGuiContext_GetScrollbarClickDeltaToGrabCenter(selfArg))
 }
 
 func (self Context) SetDisabledAlphaBackup(v float32) {
@@ -19332,7 +19662,7 @@ func (self *Context) HookIdNext() ID {
 	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiContext_GetHookIdNext(selfArg); return &result }())
 }
 
-func (self Context) SetLocalizationTable(v *[11]string) {
+func (self Context) SetLocalizationTable(v *[12]string) {
 	vArg := make([]*C.char, len(v))
 	for i, vV := range v {
 		vVArg, _ := WrapString(vV)
@@ -19348,14 +19678,14 @@ func (self Context) SetLocalizationTable(v *[11]string) {
 	}
 }
 
-func (self *Context) LocalizationTable() [11]string {
+func (self *Context) LocalizationTable() [12]string {
 	selfArg, selfFin := self.handle()
 
 	defer func() {
 		selfFin()
 	}()
-	return func() [11]string {
-		result := [11]string{}
+	return func() [12]string {
+		result := [12]string{}
 		resultMirr := C.wrap_ImGuiContext_GetLocalizationTable(selfArg)
 		for i := range result {
 			result[i] = C.GoString(C.cimgui_const_charPtr_GetAtIdx(resultMirr, C.int(i)))
@@ -20120,7 +20450,7 @@ func (self *DataTypeInfo) ScanFmt() string {
 	return C.GoString(C.wrap_ImGuiDataTypeInfo_GetScanFmt(selfArg))
 }
 
-func (self DataTypeTempStorage) SetData(v *[8]byte) {
+func (self DataTypeStorage) SetData(v *[8]byte) {
 	vArg := make([]C.ImU8, len(v))
 	for i, vV := range v {
 		vArg[i] = C.ImU8(vV)
@@ -20128,14 +20458,14 @@ func (self DataTypeTempStorage) SetData(v *[8]byte) {
 
 	selfArg, selfFin := self.handle()
 	defer selfFin()
-	C.wrap_ImGuiDataTypeTempStorage_SetData(selfArg, (*C.ImU8)(&vArg[0]))
+	C.wrap_ImGuiDataTypeStorage_SetData(selfArg, (*C.ImU8)(&vArg[0]))
 
 	for i, vV := range vArg {
 		(*v)[i] = byte(vV)
 	}
 }
 
-func (self *DataTypeTempStorage) Data() [8]byte {
+func (self *DataTypeStorage) Data() [8]byte {
 	selfArg, selfFin := self.handle()
 
 	defer func() {
@@ -20143,7 +20473,7 @@ func (self *DataTypeTempStorage) Data() [8]byte {
 	}()
 	return func() [8]byte {
 		result := [8]byte{}
-		resultMirr := C.wrap_ImGuiDataTypeTempStorage_GetData(selfArg)
+		resultMirr := C.wrap_ImGuiDataTypeStorage_GetData(selfArg)
 		for i := range result {
 			result[i] = byte(C.cimgui_ImU8_GetAtIdx(resultMirr, C.int(i)))
 		}
@@ -22082,6 +22412,21 @@ func (self *IO) ClipboardUserData() uintptr {
 	return uintptr(C.wrap_ImGuiIO_GetClipboardUserData(selfArg))
 }
 
+func (self IO) SetPlatformOpenInShellUserData(v uintptr) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiIO_SetPlatformOpenInShellUserData(selfArg, C.uintptr_t(v))
+}
+
+func (self *IO) PlatformOpenInShellUserData() uintptr {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return uintptr(C.wrap_ImGuiIO_GetPlatformOpenInShellUserData(selfArg))
+}
+
 func (self IO) SetPlatformLocaleDecimalPoint(v Wchar) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -22859,6 +23204,21 @@ func (self *IO) MouseWheelRequestAxisSwap() bool {
 		selfFin()
 	}()
 	return C.wrap_ImGuiIO_GetMouseWheelRequestAxisSwap(selfArg) == C.bool(true)
+}
+
+func (self IO) SetMouseCtrlLeftAsRightClick(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiIO_SetMouseCtrlLeftAsRightClick(selfArg, C.bool(v))
+}
+
+func (self *IO) MouseCtrlLeftAsRightClick() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiIO_GetMouseCtrlLeftAsRightClick(selfArg) == C.bool(true)
 }
 
 func (self IO) SetMouseDownDuration(v *[5]float32) {
@@ -24287,6 +24647,23 @@ func (self *LastItemData) ClipRect() Rect {
 	return *(&Rect{}).fromC(C.wrap_ImGuiLastItemData_GetClipRect(selfArg))
 }
 
+func (self LastItemData) SetShortcut(v KeyChord) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiLastItemData_SetShortcut(selfArg, vArg)
+}
+
+func (self *LastItemData) Shortcut() KeyChord {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newKeyChordFromC(func() *C.ImGuiKeyChord { result := C.wrap_ImGuiLastItemData_GetShortcut(selfArg); return &result }())
+}
+
 func (self ListClipper) SetCtx(v *Context) {
 	vArg, _ := v.handle()
 
@@ -25170,6 +25547,21 @@ func (self *NextItemData) Shortcut() KeyChord {
 	return *newKeyChordFromC(func() *C.ImGuiKeyChord { result := C.wrap_ImGuiNextItemData_GetShortcut(selfArg); return &result }())
 }
 
+func (self NextItemData) SetShortcutFlags(v InputFlags) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiNextItemData_SetShortcutFlags(selfArg, C.ImGuiInputFlags(v))
+}
+
+func (self *NextItemData) ShortcutFlags() InputFlags {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return InputFlags(C.wrap_ImGuiNextItemData_GetShortcutFlags(selfArg))
+}
+
 func (self NextItemData) SetOpenVal(v bool) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -25185,19 +25577,36 @@ func (self *NextItemData) OpenVal() bool {
 	return C.wrap_ImGuiNextItemData_GetOpenVal(selfArg) == C.bool(true)
 }
 
-func (self NextItemData) SetOpenCond(v Cond) {
+func (self NextItemData) SetOpenCond(v byte) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
-	C.wrap_ImGuiNextItemData_SetOpenCond(selfArg, C.ImGuiCond(v))
+	C.wrap_ImGuiNextItemData_SetOpenCond(selfArg, C.ImU8(v))
 }
 
-func (self *NextItemData) OpenCond() Cond {
+func (self *NextItemData) OpenCond() byte {
 	selfArg, selfFin := self.handle()
 
 	defer func() {
 		selfFin()
 	}()
-	return Cond(C.wrap_ImGuiNextItemData_GetOpenCond(selfArg))
+	return byte(C.wrap_ImGuiNextItemData_GetOpenCond(selfArg))
+}
+
+func (self NextItemData) SetRefVal(v DataTypeStorage) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiNextItemData_SetRefVal(selfArg, vArg)
+}
+
+func (self *NextItemData) RefVal() DataTypeStorage {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newDataTypeStorageFromC(func() *C.ImGuiDataTypeStorage { result := C.wrap_ImGuiNextItemData_GetRefVal(selfArg); return &result }())
 }
 
 func (self NextWindowData) SetFlags(v NextWindowDataFlags) {
@@ -25507,6 +25916,21 @@ func (self *NextWindowData) MenuBarOffsetMinVal() Vec2 {
 		selfFin()
 	}()
 	return *(&Vec2{}).fromC(C.wrap_ImGuiNextWindowData_GetMenuBarOffsetMinVal(selfArg))
+}
+
+func (self NextWindowData) SetRefreshFlagsVal(v WindowRefreshFlags) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiNextWindowData_SetRefreshFlagsVal(selfArg, C.ImGuiWindowRefreshFlags(v))
+}
+
+func (self *NextWindowData) RefreshFlagsVal() WindowRefreshFlags {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return WindowRefreshFlags(C.wrap_ImGuiNextWindowData_GetRefreshFlagsVal(selfArg))
 }
 
 func (self OldColumnData) SetOffsetNorm(v float32) {
@@ -26184,21 +26608,21 @@ func (self *PopupData) Window() *Window {
 	return newWindowFromC(C.wrap_ImGuiPopupData_GetWindow(selfArg))
 }
 
-func (self PopupData) SetBackupNavWindow(v *Window) {
+func (self PopupData) SetRestoreNavWindow(v *Window) {
 	vArg, _ := v.handle()
 
 	selfArg, selfFin := self.handle()
 	defer selfFin()
-	C.wrap_ImGuiPopupData_SetBackupNavWindow(selfArg, vArg)
+	C.wrap_ImGuiPopupData_SetRestoreNavWindow(selfArg, vArg)
 }
 
-func (self *PopupData) BackupNavWindow() *Window {
+func (self *PopupData) RestoreNavWindow() *Window {
 	selfArg, selfFin := self.handle()
 
 	defer func() {
 		selfFin()
 	}()
-	return newWindowFromC(C.wrap_ImGuiPopupData_GetBackupNavWindow(selfArg))
+	return newWindowFromC(C.wrap_ImGuiPopupData_GetRestoreNavWindow(selfArg))
 }
 
 func (self PopupData) SetParentNavLayer(v int32) {
@@ -27196,6 +27620,21 @@ func (self *Style) TableAngledHeadersAngle() float32 {
 	return float32(C.wrap_ImGuiStyle_GetTableAngledHeadersAngle(selfArg))
 }
 
+func (self Style) SetTableAngledHeadersTextAlign(v Vec2) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiStyle_SetTableAngledHeadersTextAlign(selfArg, v.toC())
+}
+
+func (self *Style) TableAngledHeadersTextAlign() Vec2 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *(&Vec2{}).fromC(C.wrap_ImGuiStyle_GetTableAngledHeadersTextAlign(selfArg))
+}
+
 func (self Style) SetColorButtonPosition(v Dir) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -27421,7 +27860,7 @@ func (self *Style) CircleTessellationMaxError() float32 {
 	return float32(C.wrap_ImGuiStyle_GetCircleTessellationMaxError(selfArg))
 }
 
-func (self Style) SetColors(v *[55]Vec4) {
+func (self Style) SetColors(v *[58]Vec4) {
 	vArg := make([]C.ImVec4, len(v))
 	for i, vV := range v {
 		vArg[i] = vV.toC()
@@ -27436,14 +27875,14 @@ func (self Style) SetColors(v *[55]Vec4) {
 	}
 }
 
-func (self *Style) Colors() [55]Vec4 {
+func (self *Style) Colors() [58]Vec4 {
 	selfArg, selfFin := self.handle()
 
 	defer func() {
 		selfFin()
 	}()
-	return func() [55]Vec4 {
-		result := [55]Vec4{}
+	return func() [58]Vec4 {
+		result := [58]Vec4{}
 		resultMirr := C.wrap_ImGuiStyle_GetColors(selfArg)
 		for i := range result {
 			result[i] = *(&Vec4{}).fromC(C.cimgui_ImVec4_GetAtIdx(resultMirr, C.int(i)))
@@ -30324,6 +30763,51 @@ func (self *TableColumnSortSpecs) SortDirection() SortDirection {
 	return SortDirection(C.wrap_ImGuiTableColumnSortSpecs_GetSortDirection(selfArg))
 }
 
+func (self TableHeaderData) SetTextColor(v uint32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiTableHeaderData_SetTextColor(selfArg, C.ImU32(v))
+}
+
+func (self *TableHeaderData) TextColor() uint32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return uint32(C.wrap_ImGuiTableHeaderData_GetTextColor(selfArg))
+}
+
+func (self TableHeaderData) SetBgColor0(v uint32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiTableHeaderData_SetBgColor0(selfArg, C.ImU32(v))
+}
+
+func (self *TableHeaderData) BgColor0() uint32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return uint32(C.wrap_ImGuiTableHeaderData_GetBgColor0(selfArg))
+}
+
+func (self TableHeaderData) SetBgColor1(v uint32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiTableHeaderData_SetBgColor1(selfArg, C.ImU32(v))
+}
+
+func (self *TableHeaderData) BgColor1() uint32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return uint32(C.wrap_ImGuiTableHeaderData_GetBgColor1(selfArg))
+}
+
 func (self TableInstanceData) SetTableInstanceID(v ID) {
 	vArg, _ := v.c()
 
@@ -30568,6 +31052,29 @@ func (self *TableTempData) AngledHeadersExtraWidth() float32 {
 		selfFin()
 	}()
 	return float32(C.wrap_ImGuiTableTempData_GetAngledHeadersExtraWidth(selfArg))
+}
+
+func (self TableTempData) SetAngledHeadersRequests(v Vector[*TableHeaderData]) {
+	vData := v.Data
+	vDataArg, _ := vData.handle()
+	vVecArg := new(C.ImVector_ImGuiTableHeaderData)
+	vVecArg.Size = C.int(v.Size)
+	vVecArg.Capacity = C.int(v.Capacity)
+	vVecArg.Data = vDataArg
+	v.pinner.Pin(vVecArg.Data)
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiTableTempData_SetAngledHeadersRequests(selfArg, *vVecArg)
+}
+
+func (self *TableTempData) AngledHeadersRequests() Vector[*TableHeaderData] {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return newVectorFromC(C.wrap_ImGuiTableTempData_GetAngledHeadersRequests(selfArg).Size, C.wrap_ImGuiTableTempData_GetAngledHeadersRequests(selfArg).Capacity, newTableHeaderDataFromC(C.wrap_ImGuiTableTempData_GetAngledHeadersRequests(selfArg).Data))
 }
 
 func (self TableTempData) SetUserOuterSize(v Vec2) {
@@ -32052,6 +32559,36 @@ func (self *Window) WindowBorderSize() float32 {
 	return float32(C.wrap_ImGuiWindow_GetWindowBorderSize(selfArg))
 }
 
+func (self Window) SetTitleBarHeight(v float32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiWindow_SetTitleBarHeight(selfArg, C.float(v))
+}
+
+func (self *Window) TitleBarHeight() float32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return float32(C.wrap_ImGuiWindow_GetTitleBarHeight(selfArg))
+}
+
+func (self Window) SetMenuBarHeight(v float32) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiWindow_SetMenuBarHeight(selfArg, C.float(v))
+}
+
+func (self *Window) MenuBarHeight() float32 {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return float32(C.wrap_ImGuiWindow_GetMenuBarHeight(selfArg))
+}
+
 func (self Window) SetDecoOuterSizeX1(v float32) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -32206,6 +32743,23 @@ func (self *Window) ChildId() ID {
 		selfFin()
 	}()
 	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiWindow_GetChildId(selfArg); return &result }())
+}
+
+func (self Window) SetPopupId(v ID) {
+	vArg, _ := v.c()
+
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiWindow_SetPopupId(selfArg, vArg)
+}
+
+func (self *Window) PopupId() ID {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiWindow_GetPopupId(selfArg); return &result }())
 }
 
 func (self Window) SetScroll(v Vec2) {
@@ -32433,6 +32987,21 @@ func (self *Window) SkipItems() bool {
 	return C.wrap_ImGuiWindow_GetSkipItems(selfArg) == C.bool(true)
 }
 
+func (self Window) SetSkipRefresh(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiWindow_SetSkipRefresh(selfArg, C.bool(v))
+}
+
+func (self *Window) SkipRefresh() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiWindow_GetSkipRefresh(selfArg) == C.bool(true)
+}
+
 func (self Window) SetAppearing(v bool) {
 	selfArg, selfFin := self.handle()
 	defer selfFin()
@@ -32581,23 +33150,6 @@ func (self *Window) FocusOrder() int16 {
 		selfFin()
 	}()
 	return int16(C.wrap_ImGuiWindow_GetFocusOrder(selfArg))
-}
-
-func (self Window) SetPopupId(v ID) {
-	vArg, _ := v.c()
-
-	selfArg, selfFin := self.handle()
-	defer selfFin()
-	C.wrap_ImGuiWindow_SetPopupId(selfArg, vArg)
-}
-
-func (self *Window) PopupId() ID {
-	selfArg, selfFin := self.handle()
-
-	defer func() {
-		selfFin()
-	}()
-	return *newIDFromC(func() *C.ImGuiID { result := C.wrap_ImGuiWindow_GetPopupId(selfArg); return &result }())
 }
 
 func (self Window) SetAutoFitFramesX(v int) {
@@ -33762,7 +34314,7 @@ func (self *WindowClass) DockingAllowUnclassed() bool {
 	return C.wrap_ImGuiWindowClass_GetDockingAllowUnclassed(selfArg) == C.bool(true)
 }
 
-func (self WindowDockStyle) SetColors(v *[6]uint32) {
+func (self WindowDockStyle) SetColors(v *[8]uint32) {
 	vArg := make([]C.ImU32, len(v))
 	for i, vV := range v {
 		vArg[i] = C.ImU32(vV)
@@ -33777,14 +34329,14 @@ func (self WindowDockStyle) SetColors(v *[6]uint32) {
 	}
 }
 
-func (self *WindowDockStyle) Colors() [6]uint32 {
+func (self *WindowDockStyle) Colors() [8]uint32 {
 	selfArg, selfFin := self.handle()
 
 	defer func() {
 		selfFin()
 	}()
-	return func() [6]uint32 {
-		result := [6]uint32{}
+	return func() [8]uint32 {
+		result := [8]uint32{}
 		resultMirr := C.wrap_ImGuiWindowDockStyle_GetColors(selfArg)
 		for i := range result {
 			result[i] = uint32(C.cimgui_ImU32_GetAtIdx(resultMirr, C.int(i)))
@@ -33992,6 +34544,21 @@ func (self *WindowStackData) StackSizesOnBegin() StackSizes {
 		result := C.wrap_ImGuiWindowStackData_GetStackSizesOnBegin(selfArg)
 		return &result
 	}())
+}
+
+func (self WindowStackData) SetDisabledOverrideReenable(v bool) {
+	selfArg, selfFin := self.handle()
+	defer selfFin()
+	C.wrap_ImGuiWindowStackData_SetDisabledOverrideReenable(selfArg, C.bool(v))
+}
+
+func (self *WindowStackData) DisabledOverrideReenable() bool {
+	selfArg, selfFin := self.handle()
+
+	defer func() {
+		selfFin()
+	}()
+	return C.wrap_ImGuiWindowStackData_GetDisabledOverrideReenable(selfArg) == C.bool(true)
 }
 
 func (self WindowTempData) SetCursorPos(v Vec2) {

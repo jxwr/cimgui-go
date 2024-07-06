@@ -404,21 +404,21 @@ func newDataTypeInfoFromC(cvalue *C.ImGuiDataTypeInfo) *DataTypeInfo {
 	return &DataTypeInfo{CData: cvalue}
 }
 
-type DataTypeTempStorage struct {
-	CData *C.ImGuiDataTypeTempStorage
+type DataTypeStorage struct {
+	CData *C.ImGuiDataTypeStorage
 }
 
-func (self *DataTypeTempStorage) handle() (result *C.ImGuiDataTypeTempStorage, fin func()) {
+func (self *DataTypeStorage) handle() (result *C.ImGuiDataTypeStorage, fin func()) {
 	return self.CData, func() {}
 }
 
-func (self DataTypeTempStorage) c() (C.ImGuiDataTypeTempStorage, func()) {
+func (self DataTypeStorage) c() (C.ImGuiDataTypeStorage, func()) {
 	result, fn := self.handle()
 	return *result, fn
 }
 
-func newDataTypeTempStorageFromC(cvalue *C.ImGuiDataTypeTempStorage) *DataTypeTempStorage {
-	return &DataTypeTempStorage{CData: cvalue}
+func newDataTypeStorageFromC(cvalue *C.ImGuiDataTypeStorage) *DataTypeStorage {
+	return &DataTypeStorage{CData: cvalue}
 }
 
 type DataVarInfo struct {
@@ -1535,6 +1535,23 @@ func (self TableDrawChannelIdx) c() (C.ImGuiTableDrawChannelIdx, func()) {
 
 func newTableDrawChannelIdxFromC(cvalue *C.ImGuiTableDrawChannelIdx) *TableDrawChannelIdx {
 	return (*TableDrawChannelIdx)((*uint16)(cvalue))
+}
+
+type TableHeaderData struct {
+	CData *C.ImGuiTableHeaderData
+}
+
+func (self *TableHeaderData) handle() (result *C.ImGuiTableHeaderData, fin func()) {
+	return self.CData, func() {}
+}
+
+func (self TableHeaderData) c() (C.ImGuiTableHeaderData, func()) {
+	result, fn := self.handle()
+	return *result, fn
+}
+
+func newTableHeaderDataFromC(cvalue *C.ImGuiTableHeaderData) *TableHeaderData {
+	return &TableHeaderData{CData: cvalue}
 }
 
 type TableInstanceData struct {
