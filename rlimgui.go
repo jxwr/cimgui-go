@@ -6,8 +6,8 @@ package imgui
 */
 import "C"
 
-func SetupRaylib() {
-	C.rlImGuiSetup(true)
+func SetupRaylib(darkTheme bool) {
+	C.rlImGuiSetup(C.bool(darkTheme))
 }
 
 func BeginRaylibFrame() {
