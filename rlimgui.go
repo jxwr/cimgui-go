@@ -21,3 +21,7 @@ func EndRaylibFrame() {
 func ShutdownRaylib() {
 	C.rlImGuiShutdown()
 }
+
+func ReloadFonts() {
+	C.rlImGuiReloadFonts()
+}
